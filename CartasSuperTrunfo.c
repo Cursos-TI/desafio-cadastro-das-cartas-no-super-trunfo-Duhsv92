@@ -1,96 +1,106 @@
 #include <stdio.h>
+#include <string.h>
+#include <math.h>
 
-int main() {
-    // Variáveis da Carta 1
-    char estado1;
-    char codigo1[4];
-    char nome1[50];
-    int populacao1, pontosTuristicos1;
-    float area1, pib1;
-    float densidade1, pibPerCapita1;
+typedef struct {
+    char codigo[16];
+    char estado[4];
+    char nome[64];
+    unsigned long int populacao;
+    double area;
+    double pib;
+    int pontos_turisticos;
 
-    // Variáveis da Carta 2
-    char estado2;
-    char codigo2[4];
-    char nome2[50];
-    int populacao2, pontosTuristicos2;
-    float area2, pib2;
-    float densidade2, pibPerCapita2;
+    double densidade;
+    double pib_per_capita;
+    float super_poder;
+} Carta;
 
-    // ======= Entrada de dados da Carta 1 =======
-    printf("Digite o estado da Carta 1: ");
-    scanf(" %c", &estado1);
+static void ler_linha(const char *prompt, char *buf, size_t tam) {
+    printf("%s", prompt);
+    fgets(buf, (int)tam, stdin);
+    buf[strcspn(buf, "\n")] = 0;
+}
 
-    printf("Digite o codigo da Carta 1: ");
-    scanf("%s", codigo1);
+static void ler_carta(Carta *c, int idx) {
+    char tmp[128];
+    printf("\n--- Cadastro da Carta %d ---\n", idx);
 
-    printf("Digite o nome da cidade da Carta 1: ");
-    scanf(" %[^\n]", nome1);
+    ler_linha("Digite o codigo: ", c->codigo, sizeof(c->codigo));
+    ler_linha("Digite o estado (UF): ", c->estado, sizeof(c->estado));
+    ler_linha("Digite o nome da cidade: ", c->nome, sizeof(c->nome));
 
-    printf("Digite a populacao da cidade: ");
-    scanf("%d", &populacao1);
+    ler_linha("Digite a populacao: ", tmp, sizeof(tmp));
+    sscanf(tmp, "%lu", &c->populacao);
 
-    printf("Digite a area da cidade (em km2): ");
-    scanf("%f", &area1);
+    ler_linha("Digite a area em km2: ", tmp, sizeof(tmp));
+    sscanf(tmp, "%lf", &c->area);
 
-    printf("Digite o PIB da cidade (em bilhoes de reais): ");
-    scanf("%f", &pib1);
+    ler_linha("Digite o PIB: ", tmp, sizeof(tmp));
+    sscanf(tmp, "%lf", &c->pib);
 
-    printf("Digite o numero de pontos turisticos: ");
-    scanf("%d", &pontosTuristicos1);
+    ler_linha("Digite o numero de pontos turisticos: ", tmp, sizeof(tmp));
+    sscanf(tmp, "%d", &c->pontos_turisticos);
+}
 
-    // ======= Entrada de dados da Carta 2 =======
-    printf("\nDigite o estado da Carta 2: ");
-    scanf(" %c", &estado2);
+static void calcular_derivados(Carta *c) {
+    c->densidade     = (c->area > 0) ? (double)c->populacao / c->area : INFINITY;
+    c->pib_per_capita= (c->populacao > 0) ? c->pib / (double)c->populacao : 0.0;
 
-    printf("Digite o codigo da Carta 2: ");
-    scanf("%s", codigo2);
+    double inv_densidade = (isfinite(c->densidade) && c->densidade > 0.0)
+                         ? 1.0 / c->densidade
+                         : 0.0;
 
-    printf("Digite o nome da cidade da Carta 2: ");
-    scanf(" %[^\n]", nome2);
+    double soma = (double)c->populacao + c->area + c->pib +
+                  (double)c->pontos_turisticos + c->pib_per_capita + inv_densidade;
 
-    printf("Digite a populacao da cidade: ");
-    scanf("%d", &populacao2);
+    c->super_poder = (float)soma;
+}
 
-    printf("Digite a area da cidade (em km2): ");
-    scanf("%f", &area2);
+static void exibir_carta(const Carta *c, int idx) {
+    printf("\n=== Carta %d ===\n", idx);
+    printf("Codigo: %s\n", c->codigo);
+    printf("Estado: %s\n", c->estado);
+    printf("Cidade: %s\n", c->nome);
+    printf("Populacao: %lu\n", c->populacao);
+    printf("Area: %.2f\n", c->area);
+    printf("PIB: %.2f\n", c->pib);
+    printf("Pontos Turisticos: %d\n", c->pontos_turisticos);
+    printf("Densidade Populacional: %.6f\n", isfinite(c->densidade) ? c->densidade : 0.0);
+    printf("PIB per Capita: %.6f\n", c->pib_per_capita);
+    printf("Super Poder: %.6f\n", c->super_poder);
+}
 
-    printf("Digite o PIB da cidade (em bilhoes de reais): ");
-    scanf("%f", &pib2);
+static void comparar(const char *rotulo, double v1, double v2, int maior_vence) {
+    int resultado = (fabs(v1 - v2) < 1e-12) ? -1
+                    : (maior_vence ? (v1 > v2) : (v1 < v2));
 
-    printf("Digite o numero de pontos turisticos: ");
-    scanf("%d", &pontosTuristicos2);
+    printf("%s: %s\n", rotulo,
+           (resultado == -1) ? "Empate (0)" :
+           (resultado == 1)  ? "Carta 1 venceu (1)" :
+                               "Carta 2 venceu (0)");
+}
 
-    // ======= Cálculos =======
-    densidade1 = populacao1 / area1;
-    pibPerCapita1 = (pib1 * 1000000000) / populacao1; // PIB em reais por habitante
+int main(void) {
+    Carta c1 = {0}, c2 = {0};
 
-    densidade2 = populacao2 / area2;
-    pibPerCapita2 = (pib2 * 1000000000) / populacao2;
+    ler_carta(&c1, 1);
+    ler_carta(&c2, 2);
 
-    // ======= Saída Carta 1 =======
-    printf("\n=== Carta 1 ===\n");
-    printf("Estado: %c\n", estado1);
-    printf("Codigo: %s\n", codigo1);
-    printf("Nome da Cidade: %s\n", nome1);
-    printf("Populacao: %d\n", populacao1);
-    printf("Area: %.2f km2\n", area1);
-    printf("PIB: %.2f bilhoes de reais\n", pib1);
-    printf("Numero de Pontos Turisticos: %d\n", pontosTuristicos1);
-    printf("Densidade Populacional: %.2f hab/km2\n", densidade1);
-    printf("PIB per Capita: %.2f reais\n", pibPerCapita1);
+    calcular_derivados(&c1);
+    calcular_derivados(&c2);
 
-    // ======= Saída Carta 2 =======
-    printf("\n=== Carta 2 ===\n");
-    printf("Estado: %c\n", estado2);
-    printf("Codigo: %s\n", codigo2);
-    printf("Nome da Cidade: %s\n", nome2);
-    printf("Populacao: %d\n", populacao2);
-    printf("Area: %.2f km2\n", area2);
-    printf("PIB: %.2f bilhoes de reais\n", pib2);
-    printf("Numero de Pontos Turisticos: %d\n", pontosTuristicos2);
-    printf("Densidade Populacional: %.2f hab/km2\n", densidade2);
-    printf("PIB per Capita: %.2f reais\n", pibPerCapita2);
+    exibir_carta(&c1, 1);
+    exibir_carta(&c2, 2);
+
+    printf("\nComparacao de Cartas:\n\n");
+    comparar("Populacao",           (double)c1.populacao, (double)c2.populacao, 1);
+    comparar("Area",                c1.area,              c2.area,              1);
+    comparar("PIB",                 c1.pib,               c2.pib,               1);
+    comparar("Pontos Turisticos",   (double)c1.pontos_turisticos, (double)c2.pontos_turisticos, 1);
+    comparar("Densidade Populacional", c1.densidade,       c2.densidade,        0); // menor vence
+    comparar("PIB per Capita",      c1.pib_per_capita,    c2.pib_per_capita,    1);
+    comparar("Super Poder",         c1.super_poder,       c2.super_poder,       1);
 
     return 0;
 }
